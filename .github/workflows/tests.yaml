@@ -65,16 +65,5 @@ jobs:
 
       - name: Redis Start
         run: |
-          service redis status
+          redis-cli -h host_url -p 6379 ping
         continue-on-error: true
-
-      - name: Redis Start
-        run: |
-          service redis start
-        continue-on-error: true
-
-      - name: Redis Start
-        run: |
-          service redis-server start
-        continue-on-error: true
-
