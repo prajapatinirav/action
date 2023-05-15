@@ -1,0 +1,80 @@
+name: Tests
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:latest
+        env:
+          MYSQL_ROOT_PASSWORD: password
+          MYSQL_DATABASE: carerockets_develop_test
+        ports:
+          - 8888:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+
+      redis:
+        image: redis
+        ports:
+          - 6379/tcp
+        options: --health-cmd="redis-cli ping" --health-interval=10s --health-timeout=5s --health-retries=3
+
+    strategy:
+      matrix:
+        php: [8.1]
+
+    name: PHP ${{ matrix.php }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Slack notification
+        uses: ravsamhq/notify-slack-action@v2
+        if: always()
+        with:
+          status: ${{ job.status }}
+          notify_when: 'success'
+        env:
+          SLACK_WEBHOOK_URL: https://hooks.slack.com/services/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 # require
+
+
+      - name: Copy environment file
+        run: cp .env.testing .env
+
+      - name: MySQL Start
+        run: |
+          sudo /etc/init.d/mysql start
+          mysql -h 127.0.0.1 --port 8888 -u root -ppassword -e 'CREATE DATABASE IF NOT EXISTS carerockets_develop_test;'
+        continue-on-error: true
+
+      - name: Journal
+        run: journalctl -xeu mysql.service
+
+      - name: MySQL Dump
+        run: mysql -h 127.0.0.1 --port 8888 -u root -ppassword carerockets_develop_test  < carerockets_test_1.sql
+
+      - name: Redis Start
+        run: |
+          /etc/init.d/redis-server start
+        continue-on-error: true
+
+      - name: Redis Start
+        run: |
+          service redis start
+        continue-on-error: true
+
+      - name: Redis Start
+        run: |
+          service redis-server start
+        continue-on-error: true
+
