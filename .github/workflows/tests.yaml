@@ -65,7 +65,7 @@ jobs:
 
       - name: Redis Start
         run: |
-          sudo systemctl redis start
+          service redis status
         continue-on-error: true
 
       - name: Redis Start
